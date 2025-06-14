@@ -40,6 +40,21 @@ class User extends Authenticatable
         return $this->role === $role;
     }
 
+    public function isAdmin()
+    {
+        return $this->hasRole('admin');
+    }
+
+    public function isStudent()
+    {
+        return $this->hasRole('student');
+    }
+
+    public function isVolunteer()
+    {
+        return $this->hasRole('volunteer');
+    }
+
     /**
      * Get the donations made by the user.
      */

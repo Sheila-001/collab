@@ -321,6 +321,7 @@
 
         // Function to submit the form via fetch
         function submitForm() {
+            console.log('Attempting to submit non-monetary donation form.');
             const donationForm = document.getElementById('donationForm');
             const formData = new FormData(donationForm);
             const contactNumberInput = donationForm.querySelector('input[name="donor_phone"]');
@@ -363,17 +364,24 @@
             .then(response => response.json()) // Assuming your backend returns JSON
             .then(data => {
                 if (data.success) {
-                    // Show the thank you modal on success
-                    thankYouModal.classList.remove('hidden');
+                    document.getElementById('thankYouModal').classList.remove('hidden');
                 } else {
-                    // Handle errors or other responses here
-                    console.error('Form submission failed:', data);
-                    alert('There was an error submitting your donation.'); // Basic error handling
+                    console.error('Error:', data.message || 'Unknown error', data.errors);
+                    let errorMessage = 'There was an error submitting your donation.';
+                    if (data.message) {
+                        errorMessage += ': ' + data.message;
+                    } else if (data.errors) {
+                        const errorMessages = Object.values(data.errors).flat();
+                        if (errorMessages.length > 0) {
+                            errorMessage += ' Validation failed:\n' + errorMessages.join('\n');
+                        }
+                    }
+                    alert(errorMessage + ' Please check the console for details.');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
-                alert('There was an error submitting your donation.'); // Basic error handling
+                console.error('Fetch Error:', error);
+                alert('Submission failed: ' + (error.message || 'An unknown error occurred. Please check the console for details.'));
             });
         }
 

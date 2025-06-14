@@ -20,6 +20,8 @@ use App\Http\Controllers\CalendarController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\PublicDonationController;
 use App\Http\Controllers\UserCalendarController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\ReportController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,16 +37,27 @@ use App\Http\Controllers\UserCalendarController;
 // Public routes
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 
+// Public Donation Routes
+Route::get('/donation', [PublicDonationController::class, 'index'])->name('donation');
+Route::post('/donation', [PublicDonationController::class, 'store'])->name('donation.store');
+Route::get('/donation/success', [PublicDonationController::class, 'success'])->name('donation.success');
+
+// Monetary Donation Routes
+Route::get('/monetary-donation', [PublicDonationController::class, 'monetaryDonation'])->name('monetary_donation');
+Route::post('/monetary-donation', [PublicDonationController::class, 'submitMonetaryDonation'])->name('monetary_donation.submit');
+
 // Authentication Routes
 Route::middleware('guest')->group(function () {
     Route::get('login', [AdminController::class, 'showLoginForm'])->name('login');
     Route::post('login', [AdminController::class, 'login']);
 });
-Route::post('logout', [AdminController::class, 'logout'])->name('logout');
 
 // Admin Protected Routes
 Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(function () {
     Route::prefix('admin')->name('admin.')->group(function () {
+        // Logout route
+        Route::post('logout', [AdminController::class, 'logout'])->name('logout');
+        
         // Dashboard
         Route::get('/dashboard', [AdminController::class, 'index'])->name('dashboard');
         
@@ -69,6 +82,19 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(
             'update' => 'categories.update',
             'destroy' => 'categories.destroy'
         ]);
+
+        // Donations
+        Route::get('donations', [\App\Http\Controllers\Admin\DonationController::class, 'index'])->name('donations.index');
+        Route::get('donations/dropoffs', [\App\Http\Controllers\Admin\DonationController::class, 'dropoffs'])->name('donations.dropoffs');
+        Route::get('donations/pending', [\App\Http\Controllers\Admin\DonationController::class, 'pending'])->name('donations.pending');
+        Route::get('donations/reports', [\App\Http\Controllers\Admin\DonationController::class, 'reports'])->name('donations.reports');
+        Route::get('donations/all-donors', [\App\Http\Controllers\Admin\DonationController::class, 'allDonors'])->name('donations.all-donors');
+        Route::get('donations/{donation}', [\App\Http\Controllers\Admin\DonationController::class, 'show'])->name('donations.show');
+        Route::get('donations/{donation}/edit', [\App\Http\Controllers\Admin\DonationController::class, 'edit'])->name('donations.edit');
+        Route::put('donations/{donation}', [\App\Http\Controllers\Admin\DonationController::class, 'update'])->name('donations.update');
+        Route::delete('donations/{donation}', [\App\Http\Controllers\Admin\DonationController::class, 'destroy'])->name('donations.destroy');
+        Route::patch('donations/{donation}/status', [\App\Http\Controllers\Admin\DonationController::class, 'updateStatus'])->name('donations.update-status');
+        
         
         // Calendar Routes
         Route::get('/calendar', [\App\Http\Controllers\Admin\CalendarController::class, 'index'])->name('calendar.index');
@@ -88,21 +114,6 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(
         Route::delete('students/{tracking_code}', [StudentController::class, 'destroy'])->name('students.destroy');
         Route::delete('students/user/{id}', [StudentController::class, 'destroyUser'])->name('students.destroyUser');
 
-        // Donations
-        Route::get('donations', [DonationController::class, 'index'])->name('donations.index');
-        Route::get('donations/create', [DonationController::class, 'create'])->name('donations.create');
-        Route::post('donations', [DonationController::class, 'store'])->name('donations.store');
-        Route::get('donations/dropoffs', [DonationController::class, 'dropoffs'])->name('donations.dropoffs');
-        Route::get('donations/all', [DonationController::class, 'allDonors'])->name('donations.all');
-        Route::get('donations/all-donors', [DonationController::class, 'allDonors'])->name('donations.all-donors');
-        Route::get('donations/proof/{filename}', [DonationController::class, 'serveProofImage'])->name('donations.serve-proof');
-        Route::get('donations/{donation}', [DonationController::class, 'show'])->name('donations.show');
-        Route::get('donations/{donation}/edit', [DonationController::class, 'edit'])->name('donations.edit');
-        Route::put('donations/{donation}', [DonationController::class, 'update'])->name('donations.update');
-        Route::delete('donations/{donation}', [DonationController::class, 'destroy'])->name('donations.destroy');
-        Route::patch('donations/{donation}/status', [DonationController::class, 'updateStatus'])->name('donations.update-status');
-
-        
         // Campaigns
         Route::get('campaigns/dashboard', [CampaignController::class, 'dashboard'])->name('campaigns.dashboard');
         Route::resource('campaigns', \App\Http\Controllers\Admin\CampaignController::class)->names([
@@ -115,6 +126,23 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(
             'destroy' => 'campaigns.destroy',
         ]);
         Route::patch('campaigns/{campaign}/status', [CampaignController::class, 'updateStatus'])->name('campaigns.update-status');
+
+        // Urgent Campaigns
+        Route::get('urgent-campaigns', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'index'])->name('urgent-campaigns.index');
+        Route::get('urgent-campaigns/create', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'create'])->name('urgent-campaigns.create');
+        Route::post('urgent-campaigns', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'store'])->name('urgent-campaigns.store');
+        Route::get('urgent-campaigns/{urgent_campaign}', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'show'])->name('urgent-campaigns.show');
+        Route::get('urgent-campaigns/{urgent_campaign}/edit', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'edit'])->name('urgent-campaigns.edit');
+        Route::put('urgent-campaigns/{urgent_campaign}', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'update'])->name('urgent-campaigns.update');
+        Route::delete('urgent-campaigns/{urgent_campaign}', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'destroy'])->name('urgent-campaigns.destroy');
+        Route::patch('urgent-campaigns/{urgent_campaign}/status', [\App\Http\Controllers\Admin\UrgentCampaignController::class, 'updateStatus'])->name('urgent-campaigns.update-status');
+
+        // Reports Routes
+        Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('reports.index');
+        Route::get('/reports/monetary', [\App\Http\Controllers\Admin\ReportController::class, 'monetary'])->name('reports.monetary');
+        Route::get('/reports/non-monetary', [\App\Http\Controllers\Admin\ReportController::class, 'nonMonetary'])->name('reports.non-monetary');
+        Route::get('/reports/donors', [\App\Http\Controllers\Admin\ReportController::class, 'donors'])->name('reports.donors');
+        Route::get('/reports/campaigns', [\App\Http\Controllers\Admin\ReportController::class, 'campaigns'])->name('reports.campaigns');
 
         // Calendar Campaign Routes
         Route::get('calendar-campaigns/create', [\App\Http\Controllers\Admin\CalendarCampaignController::class, 'create'])->name('calendar-campaigns.create');
@@ -130,7 +158,9 @@ Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->group(
 
 // Job Routes (both public and admin)
 Route::middleware(['auth'])->group(function () {
+    // Public/volunteer job routes
     Route::get('/jobs', [JobController::class, 'index'])->name('jobs.index');
+    Route::get('/jobs/listings', [JobController::class, 'listings'])->name('jobs.listings');
     Route::get('/jobs/create', [JobController::class, 'create'])->name('jobs.create');
     Route::post('/jobs', [JobController::class, 'store'])->name('jobs.store');
     Route::get('/jobs/{job}', [JobController::class, 'show'])->name('jobs.show');
@@ -139,6 +169,17 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/jobs/{job}', [JobController::class, 'destroy'])->name('jobs.destroy');
     Route::post('/jobs/{job}/approve', [JobController::class, 'approve'])->name('jobs.approve');
     Route::post('/jobs/{job}/reject', [JobController::class, 'reject'])->name('jobs.reject');
+});
+
+// Admin Job Routes
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('jobs', [\App\Http\Controllers\Admin\JobListingController::class, 'index'])->name('jobs.index');
+    Route::get('jobs/create', [\App\Http\Controllers\Admin\JobListingController::class, 'create'])->name('jobs.create');
+    Route::post('jobs', [\App\Http\Controllers\Admin\JobListingController::class, 'store'])->name('jobs.store');
+    Route::get('jobs/{job}', [\App\Http\Controllers\Admin\JobListingController::class, 'show'])->name('jobs.show');
+    Route::get('jobs/{job}/edit', [\App\Http\Controllers\Admin\JobListingController::class, 'edit'])->name('jobs.edit');
+    Route::put('jobs/{job}', [\App\Http\Controllers\Admin\JobListingController::class, 'update'])->name('jobs.update');
+    Route::delete('jobs/{job}', [\App\Http\Controllers\Admin\JobListingController::class, 'destroy'])->name('jobs.destroy');
 });
 
 // Scholarship Routes
@@ -160,7 +201,19 @@ Route::middleware(['auth', \App\Http\Middleware\RedirectIfNotStudent::class])->p
 
 // Dashboard and User Management routes without auth
 Route::middleware(['auth'])->group(function () {
-    Route::get('/dashboard', [App\Http\Controllers\Admin\DonationController::class, 'index'])->name('dashboard');
+    // Add a redirect route for /dashboard
+    Route::get('/dashboard', function () {
+        if (auth()->user()->isAdmin()) {
+            return redirect()->route('admin.dashboard');
+        } elseif (auth()->user()->isStudent()) {
+            return redirect()->route('student.dashboard');
+        } elseif (auth()->user()->isVolunteer()) {
+            return redirect()->route('volunteer.dashboard');
+        } else {
+            // If user has no specific role, redirect to home or show an error
+            return redirect()->route('welcome')->with('error', 'You do not have access to any dashboard.');
+        }
+    })->name('dashboard');
 });
 
 // User management routes with auth
@@ -171,6 +224,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
+
+    // User Calendar Routes
+    Route::get('/calendar', [UserCalendarController::class, 'index'])->name('user.calendar');
+    Route::get('/calendar/events', [UserCalendarController::class, 'getEvents'])->name('user.calendar.events');
 
     // New routes for volunteer dashboard and job post
     Route::get('/volunteer/job-post', [VolunteerController::class, 'jobPost'])->name('volunteer.job-post');
@@ -196,8 +253,8 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // Admin routes
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::get('/', [App\Http\Controllers\AdminController::class, 'index'])->name('admin.dashboard');
+Route::middleware(['auth', \App\Http\Middleware\AdminMiddleware::class])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [App\Http\Controllers\AdminController::class, 'index'])->name('dashboard');
     Route::get('/applications', [ScholarshipController::class, 'index'])->name('admin.applications.index');
     Route::post('/applications/{id}/status', [ScholarshipController::class, 'updateStatus'])->name('admin.applications.updateStatus');
     // Student management
@@ -206,95 +263,4 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
         ->name('admin.students.index.shortcut');
     Route::post('/students/{tracking_code}/approve', [App\Http\Controllers\Admin\StudentController::class, 'approve'])->name('admin.students.approve');
     Route::post('/students/{tracking_code}/reject', [App\Http\Controllers\Admin\StudentController::class, 'reject'])->name('admin.students.reject');
-    // Delete student application
-    Route::delete('/students/{tracking_code}', [App\Http\Controllers\Admin\StudentController::class, 'destroy'])->name('admin.students.destroy');
-
-    // Delete student user
-    Route::delete('/students/user/{id}', [App\Http\Controllers\Admin\StudentController::class, 'destroyUser'])->name('admin.students.destroyUser');
-
-    // Admin Volunteer Management
-    Route::get('/volunteers', [App\Http\Controllers\AdminController::class, 'volunteerIndex'])->name('admin.volunteers.index');
-
-   
-    // Category Management
-    Route::resource('categories', CategoryController::class)->names('admin.categories');
-    Route::resource('categories', CategoryController::class)->names('admin.categories');
 });
-
-// Admin Scholars Route
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::get('/scholars', [AdminController::class, 'showScholars'])->name('admin.scholars');
-});
-
-// Admin Settings Route
-Route::middleware(['auth'])->prefix('admin')->group(function () {
-    Route::get('/settings', [AdminController::class, 'showSettings'])->name('admin.settings');
-});
-
-// Public Job Listing Routes
-Route::get('/jobs/listings', [JobController::class, 'index'])->name('jobs.listings');
-
-// API route for job details (for modal)
-Route::get('/api/job-listings/{id}', function($id) {
-    return \App\Models\JobListing::findOrFail($id);
-});
-
-// New route for students to view job listings
-Route::get('/jobs/listings', [JobController::class, 'index'])->name('jobs.listings');
-
-Route::get('/admin/jobs/create', [JobController::class, 'create'])->name('jobs.create');
-Route::post('/admin/jobs', [JobController::class, 'store'])->name('jobs.store');
-
-Route::get('/admin/jobs', [JobController::class, 'index'])->name('jobs.admin.index');
-Route::get('/admin/jobs/{job}/edit', [JobController::class, 'edit'])->name('jobs.edit');
-Route::put('/admin/jobs/{job}', [JobController::class, 'update'])->name('jobs.update');
-Route::delete('/admin/jobs/{job}', [JobController::class, 'destroy'])->name('jobs.destroy');
-
-Route::post('/admin/jobs/{job}/approve', [JobController::class, 'approve'])->name('jobs.approve');
-Route::post('/admin/jobs/{job}/reject', [JobController::class, 'reject'])->name('jobs.reject');
-
-// Public Donation Routes (no auth required)
-Route::get('/donate', function () {
-    $topDonors = \App\Models\Donation::where('type', 'monetary')
-        ->where('status', 'completed')
-        ->where('is_anonymous', false)
-        ->orderBy('amount', 'desc')
-        ->take(3)
-        ->get();
-    
-    return view('donation.donation', compact('topDonors'));
-})->name('donation');
-
-Route::get('/donation', [DonationController::class, 'index'])->name('admin.donation.index');
-
-Route::post('/monetary-donation/submit', [App\Http\Controllers\PublicDonationController::class, 'submitMonetaryDonation'])->name('monetary_donation.submit');
-
-// Add non-monetary donation route
-Route::get('/non-monetary-donation', function () {
-    return view('donation.nonmonetary');
-})->name('non_monetary');
-
-// Public User Calendar Route (for Join Campaign button)
-Route::get('/user-calendar', [UserCalendarController::class, 'index'])->name('user.calendar');
-
-Route::get('/monetary-donation', function () {
-    return view('donation.monetary');
-})->name('monetary_donation');
-
-// Admin redirect
-Route::get('/admin', function () {
-    return redirect()->route('admin.donations.index');
-});
-
-Route::get('/debug-database', [App\Http\Controllers\PublicDonationController::class, 'debugDatabase']);
-
-// For monetary donations
-Route::post('/donations/monetary', [App\Http\Controllers\PublicDonationController::class, 'storeMonetary'])->name('donations.monetary.store');
-
-// For non-monetary donations
-Route::post('/donations/non-monetary', [App\Http\Controllers\PublicDonationController::class, 'storeNonMonetary'])->name('donations.non-monetary.store');
-
-Route::post('/non-monetary-donation', [App\Http\Controllers\PublicDonationController::class, 'submitNonMonetaryDonation'])->name('non_monetary.submit');
-
-// Get total monetary donations (moved to DonationController)
-Route::get('/donations/total', [App\Http\Controllers\PublicDonationController::class, 'getMonetaryTotal'])->name('donations.total');

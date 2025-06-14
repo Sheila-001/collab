@@ -11,13 +11,15 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\MonetaryDonationReceived;
 use App\Mail\NonMonetaryDropoffConfirmed;
+use Illuminate\Support\Facades\Log;
+use App\Models\Donor;
 
 class DonationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // If the URL contains /all, redirect to /all-donors
-        if (request()->is('admin/donations/all')) {
+        if ($request->is('admin/donations/all')) {
             return redirect()->route('admin.donations.all-donors');
         }
 
@@ -57,7 +59,10 @@ class DonationController extends Controller
             ? (($nonMonetaryCount - $lastMonthNonMonetary) / $lastMonthNonMonetary) * 100 
             : 0;
 
-        // Get campaign total and change
+        // Get total campaigns count
+        $totalCampaigns = Campaign::count();
+
+        // Get campaign total and change (using existing logic, but now linked to $totalCampaigns)
         $campaignTotal = Donation::whereHas('campaign', function($query) {
                 $query->where('status', 'active');
             })
@@ -77,13 +82,9 @@ class DonationController extends Controller
             : 0;
 
         // Get donor count and change
-        $donorCount = Donation::select('donor_email')
-            ->distinct()
-            ->count();
+        $donorCount = Donor::count();
         
-        $lastMonthDonors = Donation::select('donor_email')
-            ->distinct()
-            ->whereMonth('created_at', $lastMonth->month)
+        $lastMonthDonors = Donor::whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at', $lastMonth->year)
             ->count();
         
@@ -91,70 +92,79 @@ class DonationController extends Controller
             ? (($donorCount - $lastMonthDonors) / $lastMonthDonors) * 100 
             : 0;
 
-        // Get paginated donations
-        $donations = Donation::with(['campaign'])
-            ->latest()
-            ->paginate(10);
+        // Query for recent donations (no filter/search on index page)
+        $donations = Donation::with(['campaign'])->latest()->limit(5)->get();
 
-        // Get pending drop-offs
-        $pendingDropoffs = Donation::where('type', 'non-monetary')
-            ->where('status', 'pending')
-            ->get();
+        // Get pending drop-offs for the new section
+        $pendingDonationsQuery = Donation::where('status', 'pending')->latest();
+
+        if ($request->has('search_dashboard_pending')) {
+            $search = $request->input('search_dashboard_pending');
+            $pendingDonationsQuery->where(function ($q) use ($search) {
+                $q->where('donor_name', 'like', '%' . $search . '%')
+                    ->orWhere('donor_email', 'like', '%' . $search . '%')
+                    ->orWhere('item_name', 'like', '%' . $search . '%')
+                    ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        $pendingDonations = $pendingDonationsQuery->take(5)->get();
 
         return view('admin.donation.index', compact(
             'monetaryTotal',
             'monetaryChange',
             'nonMonetaryCount',
             'nonMonetaryChange',
+            'totalCampaigns',
             'campaignTotal',
             'campaignChange',
             'donorCount',
             'donorChange',
             'donations',
-            'pendingDropoffs'
+            'pendingDonations'
         ));
     }
 
-    public function create()
-    {
-        $campaigns = Campaign::where('status', 'active')->get();
-        return view('admin.donation.create', compact('campaigns'));
-    }
+    // public function create()
+    // {
+    //     $campaigns = Campaign::where('status', 'active')->get();
+    //     return view('admin.donation.create', compact('campaigns'));
+    // }
 
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'type' => 'required|in:monetary,non-monetary',
-            'donor_name' => 'required|string|max:255',
-            'donor_email' => 'required|email|max:255',
-            'campaign_id' => 'nullable|exists:campaigns,id',
-            'amount' => 'required_if:type,monetary|numeric|min:0',
-            'item_name' => 'required_if:type,non-monetary|string|max:255',
-            'quantity' => 'required_if:type,non-monetary|integer|min:1',
-            'expected_date' => 'required_if:type,non-monetary|date|after:today',
-            'notes' => 'nullable|string',
-            'category' => 'required_if:type,non-monetary|nullable|string|max:255',
-            'condition' => 'required_if:type,non-monetary|nullable|string|max:255',
-        ]);
+    // public function store(Request $request)
+    // {
+    //     $validated = $request->validate([
+    //         'type' => 'required|in:monetary,non-monetary',
+    //         'donor_name' => 'required|string|max:255',
+    //         'donor_email' => 'required|email|max:255',
+    //         'campaign_id' => 'nullable|exists:campaigns,id',
+    //         'amount' => 'required_if:type,monetary|numeric|min:0',
+    //         'item_name' => 'required_if:type,non-monetary|string|max:255',
+    //         'quantity' => 'required_if:type,non-monetary|integer|min:1',
+    //         'expected_date' => 'required_if:type,non-monetary|date|after:today',
+    //         'notes' => 'nullable|string',
+    //         'category' => 'required_if:type,non-monetary|nullable|string|max:255',
+    //         'condition' => 'required_if:type,non-monetary|nullable|string|max:255',
+    //     ]);
 
-        $donation = Donation::create($validated);
+    //     $donation = Donation::create($validated);
 
-        // For monetary donations
-        if ($request->hasFile('proof')) {
-            $proofPath = $request->file('proof')->store('proofs', 'public');
-            $donation->update(['proof_path' => $proofPath]);
-        }
+    //     // For monetary donations
+    //     if ($request->hasFile('proof')) {
+    //         $proofPath = $request->file('proof')->store('proofs', 'public');
+    //         $donation->update(['proof_path' => $proofPath]);
+    //     }
 
-        // For non-monetary donations
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('non-monetary-donations', 'public');
-            $donation->update(['image_path' => $imagePath]);
-        }
+    //     // For non-monetary donations
+    //     if ($request->hasFile('image')) {
+    //         $imagePath = $request->file('image')->store('non-monetary-donations', 'public');
+    //         $donation->update(['image_path' => $imagePath]);
+    //     }
 
-        return redirect()
-            ->route('admin.donations.show', $donation)
-            ->with('success', 'Donation created successfully.');
-    }
+    //     return redirect()
+    //         ->route('admin.donations.show', $donation)
+    //         ->with('success', 'Donation created successfully.');
+    // }
 
     public function show(Donation $donation)
     {
@@ -164,7 +174,7 @@ class DonationController extends Controller
     public function edit(Donation $donation)
     {
         $campaigns = Campaign::where('status', 'active')->get();
-        return view('admin.donation.adddonation', compact('donation', 'campaigns'));
+        return view('admin.donations.adddonation', compact('donation', 'campaigns'));
     }
 
     public function update(Request $request, Donation $donation)
@@ -205,65 +215,139 @@ class DonationController extends Controller
     public function destroy(Donation $donation)
     {
         $donation->delete();
-        return redirect()
-            ->route('admin.donations.index')
-            ->with('success', 'Donation deleted successfully.');
+        return redirect()->route('admin.donations.index')->with('success', 'Donation deleted successfully.');
     }
 
     public function updateStatus(Request $request, Donation $donation)
     {
-        $request->validate([
-            'status' => 'required|in:completed,pending,rejected'
+        Log::info('updateStatus method called.', [
+            'request_method' => $request->method(),
+            'donation_id' => $donation->id,
+            'status_payload' => $request->input('status'),
         ]);
 
-        // Store the old status before updating
-        $oldStatus = $donation->status;
-
-        $donation->update([
-            'status' => $request->status
+        $validated = $request->validate([
+            'status' => 'required|in:pending,completed,cancelled',
         ]);
 
-        // Check if the status changed to 'completed'
-        if ($oldStatus !== 'completed' && $donation->status === 'completed') {
-            // Send email based on donation type
-            if ($donation->type === 'monetary') {
-                Mail::to($donation->donor_email)->send(new MonetaryDonationReceived($donation));
-            } elseif ($donation->type === 'non-monetary') {
-                Mail::to($donation->donor_email)->send(new NonMonetaryDropoffConfirmed($donation));
-            }
+        $donation->update($validated);
+
+        if ($donation->type === 'monetary' && $donation->status === 'completed') {
+            Mail::to($donation->donor_email)->send(new MonetaryDonationReceived($donation));
+        } elseif ($donation->type === 'non-monetary' && $donation->status === 'completed') {
+            Mail::to($donation->donor_email)->send(new NonMonetaryDropoffConfirmed($donation));
         }
 
-        return redirect()->back()->with('success', 'Donation status updated successfully');
+        return back()->with('success', 'Donation status updated successfully.');
     }
 
     public function dropoffs()
     {
-        $dropoffs = Donation::where('type', 'non-monetary')
-            ->whereNotNull('expected_date')
+        $pendingDropoffs = Donation::where('type', 'non-monetary')
+            ->where('status', 'pending')
             ->latest()
-            ->paginate(20);
+            ->get();
 
-        return view('admin.donation.dropoffs', compact('dropoffs'));
+        $completedDropoffs = Donation::where('type', 'non-monetary')
+            ->where('status', 'completed')
+            ->latest()
+            ->get();
+        
+        return view('admin.donation.dropoffs', compact('pendingDropoffs', 'completedDropoffs'));
     }
 
     public function serveProofImage($filename)
     {
-        $path = storage_path('app/public/proofs/' . $filename);
-        
-        if (!file_exists($path)) {
+        // Ensure the proof_path exists for the given filename and is not null
+        $donation = Donation::where('proof_path', 'like', '%' . $filename)->first();
+
+        if (!empty($donation->proof_path) && Storage::disk('public')->exists($donation->proof_path)) {
+            return Storage::disk('public')->response($donation->proof_path);
+        } else {
             abort(404);
         }
-
-        return response()->file($path);
     }
 
-    public function allDonors()
+    public function allDonations(Request $request)
     {
-        \Illuminate\Support\Facades\Log::info('allDonors method reached');
-        $donations = Donation::with(['campaign'])
-            ->latest()
-            ->get(); // Get all donations without pagination
+        $query = Donation::with(['donor', 'campaign']);
+
+        if ($request->has('search_donations')) {
+            $search = $request->input('search_donations');
+            $query->where(function ($q) use ($search) {
+                $q->where('donor_name', 'like', '%' . $search . '%')
+                    ->orWhere('donor_email', 'like', '%' . $search . '%')
+                    ->orWhere('item_name', 'like', '%' . $search . '%')
+                    ->orWhere('type', 'like', '%' . $search . '%')
+                    ->orWhere('status', 'like', '%' . $search . '%')
+                    ->orWhereHas('campaign', function($q_campaign) use ($search) {
+                        $q_campaign->where('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        $donations = $query->latest()->paginate(10);
+
+        return view('admin.donations.all', compact('donations'));
+    }
+
+    public function allDonors(Request $request)
+    {
+        $query = Donation::query();
+
+        // Apply search filter
+        if ($request->has('search_donations')) {
+            $search = $request->input('search_donations');
+            $query->where(function ($q) use ($search) {
+                $q->where('donor_name', 'like', '%' . $search . '%')
+                    ->orWhere('donor_email', 'like', '%' . $search . '%')
+                    ->orWhere('item_name', 'like', '%' . $search . '%')
+                    ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        // Apply donation type filter
+        if ($request->has('filter') && $request->filter !== 'all') {
+            switch ($request->filter) {
+                case 'monetary':
+                    $query->where('type', 'monetary');
+                    break;
+                case 'non-monetary':
+                    $query->where('type', 'non-monetary');
+                    break;
+                case 'campaigns':
+                    $query->whereNotNull('campaign_id');
+                    break;
+            }
+        }
+
+        $donations = $query->latest()->paginate(10);
 
         return view('admin.donation.all-donors', compact('donations'));
+    }
+
+    public function pending(Request $request)
+    {
+        $query = Donation::where('status', 'pending')->latest();
+
+        if ($request->has('search_pending_donations')) {
+            $search = $request->input('search_pending_donations');
+            $query->where(function ($q) use ($search) {
+                $q->where('donor_name', 'like', '%' . $search . '%')
+                    ->orWhere('donor_email', 'like', '%' . $search . '%')
+                    ->orWhere('item_name', 'like', '%' . $search . '%')
+                    ->orWhere('type', 'like', '%' . $search . '%');
+            });
+        }
+
+        $pendingDonations = $query->paginate(10);
+
+        return view('admin.donation.pending', compact('pendingDonations'));
+    }
+
+    public function reports()
+    {
+        // This method is now handled by ReportController
+        return redirect()->route('admin.reports.index');
     }
 } 

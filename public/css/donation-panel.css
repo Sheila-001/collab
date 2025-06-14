@@ -1,0 +1,16 @@
+/* public/css/donation-panel.css */
+
+.table-hover tbody tr:hover {
+    background-color: #f0f0f0; /* Lighter shade on hover */
+    transition: background-color 0.2s ease-in-out;
+}
+
+.table th,
+.table td {
+    padding: 12px 16px; /* Slightly more padding for comfort */
+}
+
+.btn-sm {
+    padding: 8px 12px; /* Adjust button padding for a slightly larger feel */
+    font-size: 0.875rem; /* Standard small button font size */
+} 

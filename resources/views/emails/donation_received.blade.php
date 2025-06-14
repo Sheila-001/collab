@@ -11,7 +11,7 @@
 
         <p>Here are the details of your donation:</p>
         <p>Amount: ₱{{ number_format($donation->amount ?? 0, 2) }}</p>
-        <p>Date: {{ $donation->created_at?->format('M d, Y H:i') }}</p>
+        <p>Date: {{ $donation->created_at?->format('M d, Y h:i A') }}</p>
 
     @elseif($donation_type === 'non-monetary')
         <p>Thank you for your non-monetary donation. We have confirmed receipt of your generous contribution.</p>

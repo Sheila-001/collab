@@ -13,25 +13,18 @@ return new class extends Migration
     {
         Schema::create('donations', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('campaign_id')->nullable();
-            $table->string('donor_name')->nullable();
-            $table->string('donor_email')->nullable();
-            $table->string('donor_phone')->nullable();
-            $table->boolean('is_anonymous')->default(false);
-            $table->enum('type', ['monetary', 'non-monetary']);
+            $table->foreignId('donor_id')->constrained()->onDelete('cascade');
+            $table->foreignId('campaign_id')->nullable()->constrained()->onDelete('set null');
+            $table->string('type'); // monetary, non-monetary
             $table->decimal('amount', 10, 2)->nullable();
-            $table->string('item_description')->nullable();
-            $table->integer('quantity')->nullable();
-            $table->string('status')->default('completed');
+            $table->string('item_name')->nullable();
+            $table->string('item_category')->nullable();
+            $table->integer('item_quantity')->nullable();
+            $table->string('status')->default('pending'); // pending, approved, rejected
             $table->string('payment_method')->nullable();
-            $table->string('transaction_id')->nullable()->unique();
+            $table->string('payment_status')->nullable();
             $table->text('notes')->nullable();
             $table->timestamps();
-
-            $table->foreign('campaign_id')
-                  ->references('id')
-                  ->on('campaigns')
-                  ->onDelete('cascade');
         });
     }
 

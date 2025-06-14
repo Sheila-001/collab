@@ -139,6 +139,9 @@ class AdminController extends Controller
             ->where('status', 'pending')
             ->get();
 
+        // Get total pending donations (monetary + non-monetary)
+        $pendingDonations = Donation::where('status', 'pending')->count();
+
         return view('admin.dashboard', compact(
             'monetaryTotal',
             'monetaryChange',
@@ -149,7 +152,8 @@ class AdminController extends Controller
             'donorCount',
             'donorChange',
             'donations',
-            'pendingDropoffs'
+            'pendingDropoffs',
+            'pendingDonations'
         ));
     }
 
@@ -180,5 +184,70 @@ class AdminController extends Controller
         Event::where('end_date', '<', Carbon::now())
              ->where('status', '!=', 'completed')
              ->update(['status' => 'completed']);
+    }
+
+    /**
+     * Get real-time donation statistics for the dashboard.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function getDonationStats()
+    {
+        $currentMonth = Carbon::now();
+        $lastMonth = Carbon::now()->subMonth();
+
+        $monetaryTotal = Donation::where('type', 'monetary')
+            ->where('status', 'completed')
+            ->sum('amount');
+
+        $lastMonthMonetary = Donation::where('type', 'monetary')
+            ->where('status', 'completed')
+            ->whereMonth('created_at', $lastMonth->month)
+            ->whereYear('created_at', $lastMonth->year)
+            ->sum('amount');
+        
+        $monetaryChange = $lastMonthMonetary > 0 
+            ? (($monetaryTotal - $lastMonthMonetary) / $lastMonthMonetary) * 100 
+            : 0;
+
+        $nonMonetaryCount = Donation::where('type', 'non-monetary')
+            ->where('status', 'completed')
+            ->count();
+
+        $lastMonthNonMonetary = Donation::where('type', 'non-monetary')
+            ->where('status', 'completed')
+            ->whereMonth('created_at', $lastMonth->month)
+            ->whereYear('created_at', $lastMonth->year)
+            ->count();
+        
+        $nonMonetaryChange = $lastMonthNonMonetary > 0 
+            ? (($nonMonetaryCount - $lastMonthNonMonetary) / $lastMonthNonMonetary) * 100 
+            : 0;
+
+        $donorCount = Donation::select('donor_email')
+            ->distinct()
+            ->count();
+        
+        $lastMonthDonors = Donation::select('donor_email')
+            ->distinct()
+            ->whereMonth('created_at', $lastMonth->month)
+            ->whereYear('created_at', $lastMonth->year)
+            ->count();
+        
+        $donorChange = $lastMonthDonors > 0 
+            ? (($donorCount - $lastMonthDonors) / $lastMonthDonors) * 100 
+            : 0;
+
+        $pendingDonations = Donation::where('status', 'pending')->count();
+
+        return response()->json([
+            'monetaryTotal' => number_format($monetaryTotal, 2),
+            'monetaryChange' => number_format($monetaryChange, 1),
+            'nonMonetaryCount' => $nonMonetaryCount,
+            'nonMonetaryChange' => number_format($nonMonetaryChange, 1),
+            'donorCount' => $donorCount,
+            'donorChange' => number_format($donorChange, 1),
+            'pendingDonations' => $pendingDonations,
+        ]);
     }
 }

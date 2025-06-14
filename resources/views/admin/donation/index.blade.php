@@ -44,7 +44,21 @@
                 </div>
             </div>
 
-            <!-- Total Donors Card -->
+            <!-- Total Campaigns Card (New Position) -->
+            <div class="bg-white rounded-xl shadow p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-gray-600 font-semibold">Total Campaigns</span>
+                    <span class="bg-yellow-100 text-yellow-600 p-2 rounded-full">
+                        <i class="fas fa-bullhorn"></i>
+                    </span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="text-2xl font-bold">{{ $totalCampaigns ?? 0 }}</span>
+                    <span class="text-sm text-yellow-500 mt-1">{{ number_format($campaignChange, 2) }}% from last month</span>
+                </div>
+            </div>
+
+            <!-- Total Donors Card (New Position) -->
             <div class="bg-white rounded-xl shadow p-6">
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-gray-600 font-semibold">Total Donors</span>
@@ -53,23 +67,101 @@
                     </span>
                 </div>
                 <div class="flex flex-col">
-                    <span class="text-2xl font-bold">{{ $totalDonors ?? 0 }}</span>
-                    <span class="text-sm text-green-500 mt-1">↑5% from last month</span>
+                    <span class="text-2xl font-bold">{{ $donorCount ?? 0 }}</span>
+                    <span class="text-sm text-green-500 mt-1">{{ number_format($donorChange, 2) }}% from last month</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Donations Section (New) -->
+        <div class="bg-white rounded-xl shadow p-6 mb-8">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold text-gray-800">Pending Donations</h2>
+                <div class="flex items-center space-x-4">
+                    <form action="{{ route('admin.donations.index') }}" method="GET" class="flex-grow max-w-xs">
+                        <label for="pending-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                </svg>
+                            </div>
+                            <input type="search" id="pending-search" name="search_dashboard_pending" class="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="Search pending..." value="{{ request('search_dashboard_pending') }}" />
+                        </div>
+                    </form>
+                    <a href="{{ route('admin.donations.pending') }}" class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">See All Pending</a>
                 </div>
             </div>
 
-            <!-- Pending Donations Card -->
-            <div class="bg-white rounded-xl shadow p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <span class="text-gray-600 font-semibold">Pending Donations</span>
-                    <span class="bg-yellow-100 text-yellow-600 p-2 rounded-full">
-                        <i class="fas fa-clock"></i>
-                    </span>
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-2xl font-bold">{{ $pendingCount ?? 0 }}</span>
-                    <span class="text-sm text-yellow-500 mt-1">Awaiting confirmation</span>
-                </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Donor</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount/Item</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Expected Date</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        @forelse($pendingDonations as $pendingDonation)
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">{{ $pendingDonation->donor_name }}</div>
+                                            <div class="text-sm text-gray-500">{{ $pendingDonation->donor_email }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                                        {{ $pendingDonation->type === 'monetary' ? 'bg-blue-100 text-blue-800' : 'bg-green-100 text-green-800' }}">
+                                        {{ ucfirst($pendingDonation->type) }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    @if($pendingDonation->type === 'monetary')
+                                        <div class="text-sm font-medium text-gray-900">₱{{ number_format($pendingDonation->amount, 2) }}</div>
+                                    @else
+                                        <div class="text-sm text-gray-900">{{ $pendingDonation->item_name }}</div>
+                                        <div class="text-sm text-gray-500">Qty: {{ $pendingDonation->item_quantity ?? 1 }}</div>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {{ $pendingDonation->expected_date?->format('M d, Y') ?? 'N/A' }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex justify-end space-x-2">
+                                        <form action="{{ route('admin.donations.update-status', $pendingDonation) }}" method="POST" class="inline-block">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="status" value="completed">
+                                            <button type="submit" class="text-green-600 hover:text-green-900" title="Mark as Completed">
+                                                <i class="fas fa-check-circle"></i>
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('admin.donations.update-status', $pendingDonation) }}" method="POST" class="inline-block">
+                                            @csrf
+                                            @method('PUT')
+                                            <input type="hidden" name="status" value="cancelled">
+                                            <button type="submit" class="text-red-600 hover:text-red-900" title="Mark as Cancelled">
+                                                <i class="fas fa-times-circle"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="px-6 py-4 text-center text-gray-500">
+                                    No pending donations found.
+                                </td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
         </div>
 
@@ -78,17 +170,19 @@
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold text-gray-800">Recent Donations</h2>
                 <div class="flex items-center space-x-4">
-                    <div class="relative">
-                        <input type="text" 
-                               placeholder="Search donations..." 
-                               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    </div>
-                    <a href="{{ route('admin.donations.create') }}" 
-                       class="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
-                        <i class="fas fa-plus mr-2"></i>
-                        Add New
-                    </a>
+                    <form action="{{ route('admin.donations.index') }}" method="GET" class="flex-grow">
+                        <label for="default-search" class="mb-2 text-sm font-medium text-gray-900 sr-only dark:text-white">Search</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 start-0 flex items-center ps-3 pointer-events-none">
+                                <svg class="w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 20 20">
+                                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m19 19-4-4m0-7A7 7 0 1 1 1 8a7 7 0 0 1 14 0Z"/>
+                                </svg>
+                            </div>
+                            <input type="search" id="default-search" name="search_donations" class="block w-full p-2 ps-10 text-sm text-gray-900 border border-gray-300 rounded-lg bg-gray-50 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" value="{{ request('search_donations') }}" />
+                        </div>
+                    </form>
+
+                    <a href="{{ route('admin.donations.all-donors') }}" class="py-2 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ml-4">See All Donations</a>
                 </div>
             </div>
 
@@ -160,10 +254,6 @@
                                            class="text-blue-600 hover:text-blue-900">
                                             <i class="fas fa-eye"></i>
                                         </a>
-                                        <a href="{{ route('admin.donations.edit', $donation) }}" 
-                                           class="text-yellow-600 hover:text-yellow-900">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
                                         <form action="{{ route('admin.donations.destroy', $donation) }}" 
                                               method="POST" 
                                               class="inline-block"
@@ -189,10 +279,63 @@
             </div>
 
             <!-- Pagination -->
-            <div class="mt-4">
+            {{-- <div class="mt-4">
                 {{ $donations->links() }}
-            </div>
+            </div> --}}
         </div>
+
+        <!-- Removed Drop-Off Confirmation Section -->
+        {{-- <div class="card border-0 shadow-sm mt-8">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">Drop-Off Confirmation</h5>
+                <a href="{{ route('admin.donations.dropoffs') }}" class="btn btn-primary">
+                    Manage Drop-Offs
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="bg-light">
+                            <tr>
+                                <th>Item</th>
+                                <th>Expected Drop-off Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($pendingDropoffs as $dropoff)
+                            <tr>
+                                <td>{{ $dropoff->item_name }} - {{ $dropoff->quantity }} units</td>
+                                <td>{{ $dropoff->expected_date?->format('M d, Y') ?? 'N/A' }}</td>
+                                <td>
+                                    <span class="badge bg-warning">Pending</span>
+                                </td>
+                                <td>
+                                    <form action="{{ route('admin.donations.update-status', $dropoff) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="status" value="completed">
+                                        <button type="submit" class="btn btn-sm btn-success">
+                                            <i class="fas fa-check me-1"></i> Confirm Receipt
+                                        </button>
+                                    </form>
+                                    <form action="{{ route('admin.donations.update-status', $dropoff) }}" method="POST" class="d-inline">
+                                        @csrf
+                                        @method('PUT')
+                                        <input type="hidden" name="status" value="rejected">
+                                        <button type="submit" class="btn btn-sm btn-danger">
+                                            <i class="fas fa-times me-1"></i> Reject
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div> --}}
     </div>
 
     <!-- Proof Image Modal -->
@@ -207,6 +350,10 @@
             <img id="proofModalImage" src="" alt="Donation Proof" class="w-full h-auto rounded-lg">
         </div>
     </div>
+
+    @push('styles')
+<link rel="stylesheet" href="{{ asset('css/donation-panel.css') }}">
+@endpush
 
     @push('scripts')
     <script>
@@ -235,6 +382,17 @@
             if (e.key === 'Escape' && !document.getElementById('proofModal').classList.contains('hidden')) {
                 closeProofModal();
             }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Make donation rows clickable
+            document.querySelectorAll('.donation-row').forEach(row => {
+                row.addEventListener('click', function(e) {
+                    if (!e.target.closest('.dropdown')) {
+                        window.location.href = this.dataset.href;
+                    }
+                });
+            });
         });
     </script>
     @endpush

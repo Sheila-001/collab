@@ -10,9 +10,12 @@
                 <a href="/admin/jobs" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">Manage Jobs</a>
                 <a href="/admin/jobs/create" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">Add Job</a>
                 <div class="mt-auto pt-20">
-                    <form action="/logout" method="POST">
+                    <form action="{{ route('admin.logout') }}" method="POST">
                         @csrf
-                        <button type="submit" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors text-red-300 hover:text-red-200">Logout</button>
+                        <button type="submit" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors text-red-300 hover:text-red-200">
+                            <i class="fas fa-sign-out-alt mr-3"></i>
+                            Logout
+                        </button>
                     </form>
                 </div>
             </nav>

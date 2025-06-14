@@ -8,12 +8,8 @@ use App\Http\Requests\StoreCampaignRequest;
 use App\Http\Requests\UpdateCampaignRequest;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Donation;
-<<<<<<< HEAD
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
-=======
-use Illuminate\Http\Request;
->>>>>>> 3ddc342fec4f1777ed9584710f29a41a97a5769f
 
 class CampaignController extends Controller
 {
@@ -39,7 +35,6 @@ class CampaignController extends Controller
      */
     public function dashboard()
     {
-<<<<<<< HEAD
         // Log the admin status of the authenticated user
         if (Auth::check()) {
             \Illuminate\Support\Facades\Log::info('Admin Dashboard Access Attempt', [
@@ -92,20 +87,6 @@ class CampaignController extends Controller
             'pendingCampaigns',
             'campaigns'
         ));
-=======
-        $campaigns = Campaign::withCount('donations')
-            ->withSum('donations', 'amount')
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        $recentDonations = Donation::whereHas('campaign')
-            ->with('campaign')
-            ->orderBy('created_at', 'desc')
-            ->limit(5)
-            ->get();
-
-        return view('admin.campaigns.dashboard', compact('campaigns', 'recentDonations'));
->>>>>>> 3ddc342fec4f1777ed9584710f29a41a97a5769f
     }
 
     /**

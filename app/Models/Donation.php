@@ -4,70 +4,48 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Donation extends Model
 {
     use HasFactory;
 
     protected $fillable = [
+        'donor_id',
         'campaign_id',
-        'donor_name',
-        'donor_email',
-        'donor_phone',
-        'is_anonymous',
-        'is_acknowledged',
-        'type',
+        'type', // monetary, non-monetary
         'amount',
-        'item_description',
-        'quantity',
-        'status',
-        'payment_method',
-        'transaction_id',
-        'proof_path',
-        'message',
-        'category',
-        'condition',
-        'notes',
+        'item_name',
+        'item_category',
+        'item_quantity',
         'expected_date',
+        'status', // pending, approved, rejected
+        'payment_method',
+        'payment_status',
+        'notes'
     ];
 
     protected $casts = [
-        'is_anonymous' => 'boolean',
-        'is_acknowledged' => 'boolean',
         'amount' => 'decimal:2',
-        'quantity' => 'integer',
+        'item_quantity' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
         'expected_date' => 'datetime',
     ];
 
     /**
-     * Get the campaign that owns the donation.
+     * Get the donor that made the donation.
      */
-    public function campaign()
+    public function donor(): BelongsTo
+    {
+        return $this->belongsTo(Donor::class);
+    }
+
+    /**
+     * Get the campaign that received the donation.
+     */
+    public function campaign(): BelongsTo
     {
         return $this->belongsTo(Campaign::class);
-    }
-
-    /**
-     * Get the donor associated with the donation.
-     */
-    public function donor()
-    {
-        return $this->belongsTo(\App\Models\User::class);
-    }
-
-    /**
-     * Get the donor's name.
-     */
-    public function getDonorNameAttribute()
-    {
-        return $this->attributes['donor_name'] ?? null;
-    }
-
-    /**
-     * Get the donor's email.
-     */
-    public function getDonorEmailAttribute()
-    {
-        return $this->attributes['donor_email'] ?? null;
     }
 } 

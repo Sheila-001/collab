@@ -273,6 +273,32 @@
     <p>Testing component rendering.</p>
 </x-test> -->
 
+        <!-- Urgent Campaigns Section -->
+        @if($urgentCampaigns->count() > 0)
+            <section id="urgent-campaigns" class="py-16 bg-neutral">
+                <div class="max-w-4xl mx-auto px-4">
+                    <h2 class="text-3xl font-bold text-gray-800 mb-8">Urgent Donation Needs</h2>
+                    @foreach($urgentCampaigns as $campaign)
+                        <div class="bg-white rounded-xl shadow p-6 mb-6">
+                            <h3 class="text-xl font-bold mb-2">{{ $campaign->title }}</h3>
+                            <p class="text-gray-600 mb-4">{{ $campaign->description }}</p>
+                            @php
+                                $progress = ($campaign->goal_amount > 0) ? ($campaign->current_amount / $campaign->goal_amount) * 100 : 0;
+                                $progress = min(100, max(0, $progress)); // Ensure progress is between 0 and 100
+                            @endphp
+                            <div class="flex justify-between items-center text-sm text-gray-700 mb-2">
+                                <span>{{ number_format($progress, 2) }}% of the goal achieved (Goal: ₱{{ number_format($campaign->goal_amount, 2) }})</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-4">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: {{ $progress }}%"></div>
+                            </div>
+                            <a href="{{ route('donation') }}" class="bg-primary text-white px-6 py-2 rounded-lg hover:bg-blue-400 transition">Donate Now</a>
+                        </div>
+                    @endforeach
+                </div>
+            </section>
+        @endif
+
         <!-- Scholarships Section with scroll animations -->
         <section id="scholarships" class="max-w-7xl mx-auto py-16 px-4 bg-gradient-to-br from-blue-50 via-white to-blue-50 rounded-3xl shadow-lg my-12">
             <h2 class="text-3xl font-bold text-center mb-12 text-primary animate-bounce-in">Scholarship & Programs</h2>

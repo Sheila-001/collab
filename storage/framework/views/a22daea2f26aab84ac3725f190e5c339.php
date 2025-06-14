@@ -12,6 +12,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <?php echo $__env->yieldPushContent('styles'); ?>
+    <style>
+        #urgent-campaigns-table th {
+            font-weight: normal;
+        }
+    </style>
 </head>
 <body class="font-sans antialiased">
     <div class="flex h-screen overflow-hidden">
@@ -24,7 +29,7 @@
                 <h1 class="text-2xl font-bold">Hauz Hayag</h1>
             </div>
             <nav class="mt-8">
-                <a href="<?php echo e(route('admin.donation.index')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">
+                <a href="<?php echo e(route('admin.donations.index')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">
                     <i class="fas fa-tachometer-alt mr-3"></i>
                     Dashboard
                 </a>
@@ -40,7 +45,7 @@
                     <i class="fas fa-hands-helping mr-3"></i>
                     Volunteers
                 </a>
-                <a href="<?php echo e(route('jobs.index')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">
+                <a href="<?php echo e(route('admin.jobs.index')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors">
                     <i class="fas fa-briefcase mr-3"></i>
                     Jobs
                 </a>
@@ -64,14 +69,22 @@
                         <i class="fas fa-bullhorn mr-2"></i>
                         Campaigns
                     </a>
+                    <a href="<?php echo e(route('admin.urgent-campaigns.index')); ?>" class="flex items-center px-4 py-2 hover:bg-[#2C5F6E] transition-colors text-sm">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Urgent Campaigns
+                    </a>
                     <a href="<?php echo e(route('admin.calendar.index')); ?>" class="flex items-center px-4 py-2 hover:bg-[#2C5F6E] transition-colors text-sm">
                         <i class="fas fa-calendar-alt mr-2"></i>
                         Calendar
                     </a>
+                    <a href="<?php echo e(route('admin.reports.index')); ?>" class="flex items-center px-4 py-2 hover:bg-[#2C5F6E] transition-colors text-sm">
+                        <i class="fas fa-chart-bar mr-2"></i>
+                        Donation Reports
+                    </a>
                 </div>
 
                 <div class="mt-auto pt-20">
-                    <a href="<?php echo e(route('logout')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors text-red-300 hover:text-red-200">
+                    <a href="<?php echo e(route('admin.logout')); ?>" class="flex items-center px-4 py-3 hover:bg-[#2C5F6E] transition-colors text-red-300 hover:text-red-200">
                         <i class="fas fa-sign-out-alt mr-3"></i>
                         Logout
                     </a>
@@ -83,7 +96,8 @@
             <?php echo $__env->yieldContent('content'); ?>
         </div>
     </div>
-    <?php echo $__env->yieldPushContent('scripts'); ?>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function toggleDonationsSubmenu(event) {
@@ -94,5 +108,6 @@
             arrow.classList.toggle('rotate-180');
         }
     </script>
+    <?php echo $__env->yieldPushContent('scripts'); ?>
 </body>
 </html> <?php /**PATH C:\collab\resources\views/components/admin-layout.blade.php ENDPATH**/ ?>

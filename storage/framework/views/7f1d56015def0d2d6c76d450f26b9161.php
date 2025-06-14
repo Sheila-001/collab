@@ -114,8 +114,4 @@
         </div>
     </nav>
 <?php endif; ?>
-<<<<<<<< HEAD:storage/framework/views/7f1d56015def0d2d6c76d450f26b9161.php
 <?php /**PATH C:\collab\vendor\laravel\framework\src\Illuminate\Pagination/resources/views/tailwind.blade.php ENDPATH**/ ?>
-========
-<?php /**PATH C:\Users\PNPh\Desktop\sheila\collab - Copy\vendor\laravel\framework\src\Illuminate\Pagination/resources/views/tailwind.blade.php ENDPATH**/ ?>
->>>>>>>> 3ddc342fec4f1777ed9584710f29a41a97a5769f:storage/framework/views/091c228410e21d4c94608ed438db99a0.php

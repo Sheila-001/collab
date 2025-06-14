@@ -70,7 +70,7 @@
                             @else
                             <div class="mb-3 pb-2 border-bottom">
                                 <label class="form-label fw-bold">Expected Drop-off Date</label>
-                                <p class="mb-0">{{ $donation->expected_date?->format('M d, Y H:i') ?? 'N/A' }}</p>
+                                <p class="mb-0">{{ $donation->expected_date?->format('M d, Y h:i A') ?? 'N/A' }}</p>
                             </div>
                             {{-- Display Contact Number for non-monetary --}}
                             @if($donation->donor_phone)

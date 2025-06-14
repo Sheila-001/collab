@@ -9,7 +9,9 @@ return new class extends Migration
     public function up()
     {
         Schema::table('campaigns', function (Blueprint $table) {
-            $table->string('image')->nullable()->after('status');
+            if (!Schema::hasColumn('campaigns', 'image')) {
+                $table->string('image')->nullable()->after('status');
+            }
         });
     }
 
