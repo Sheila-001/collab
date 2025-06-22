@@ -115,4 +115,15 @@ return [
         'name' => env('MAIL_FROM_NAME', 'Example'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Email Theme
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify which theme to use for your emails.
+    |
+    */
+
+    'theme' => 'default',
+
 ];

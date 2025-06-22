@@ -34,7 +34,16 @@ class UrgentCampaignController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'goal_amount' => 'required|numeric|min:0',
-            'ends_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after:now',
+        ], [
+            'title.required' => 'The campaign title is required.',
+            'title.max' => 'The campaign title cannot exceed 255 characters.',
+            'description.required' => 'The campaign description is required.',
+            'goal_amount.required' => 'The goal amount is required.',
+            'goal_amount.numeric' => 'The goal amount must be a number.',
+            'goal_amount.min' => 'The goal amount must be greater than or equal to 0.',
+            'ends_at.date' => 'The end date must be a valid date.',
+            'ends_at.after' => 'The end date must be in the future.',
         ]);
 
         UrgentCampaign::create($request->all());
@@ -71,7 +80,16 @@ class UrgentCampaignController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'goal_amount' => 'required|numeric|min:0',
-            'ends_at' => 'nullable|date',
+            'ends_at' => 'nullable|date|after:now',
+        ], [
+            'title.required' => 'The campaign title is required.',
+            'title.max' => 'The campaign title cannot exceed 255 characters.',
+            'description.required' => 'The campaign description is required.',
+            'goal_amount.required' => 'The goal amount is required.',
+            'goal_amount.numeric' => 'The goal amount must be a number.',
+            'goal_amount.min' => 'The goal amount must be greater than or equal to 0.',
+            'ends_at.date' => 'The end date must be a valid date.',
+            'ends_at.after' => 'The end date must be in the future.',
         ]);
 
         $urgentCampaign->update($request->all());
@@ -84,9 +102,29 @@ class UrgentCampaignController extends Controller
      */
     public function destroy(string $id)
     {
-        $urgentCampaign = UrgentCampaign::findOrFail($id);
-        $urgentCampaign->delete();
+        try {
+            $urgentCampaign = UrgentCampaign::findOrFail($id);
+            $urgentCampaign->delete();
 
-        return redirect()->route('admin.urgent-campaigns.index')->with('success', 'Urgent campaign deleted successfully.');
+            // Handle AJAX requests
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Urgent campaign deleted successfully.'
+                ]);
+            }
+
+            return redirect()->route('admin.urgent-campaigns.index')->with('success', 'Urgent campaign deleted successfully.');
+        } catch (\Exception $e) {
+            // Handle AJAX requests
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete urgent campaign: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.urgent-campaigns.index')->with('error', 'Failed to delete urgent campaign.');
+        }
     }
 }

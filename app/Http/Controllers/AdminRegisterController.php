@@ -25,7 +25,8 @@ class AdminRegisterController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'is_admin' => true, // Important: Set is_admin to true
+            'role' => 'admin', // Set role to admin
+            'status' => 'active',
         ]);
 
         return redirect('/login')->with('success', 'Admin account created! You can now log in.');

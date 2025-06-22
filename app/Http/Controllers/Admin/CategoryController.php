@@ -14,8 +14,7 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        // Implement index logic here, e.g., fetching all categories
-        $categories = Category::all();
+        $categories = Category::orderBy('name')->get();
         return view('admin.campaigns.categories.index', compact('categories'));
     }
 
@@ -85,44 +84,79 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'color' => 'required|string|size:7|regex:/^#[A-Fa-f0-9]{6}$/',
-            'description' => 'nullable|string'
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'color' => 'required|string|size:7|regex:/^#[A-Fa-f0-9]{6}$/',
+                'description' => 'nullable|string'
+            ]);
 
-        // Only update slug if name has changed
-        if ($category->name !== $validated['name']) {
-            $slug = Str::slug($validated['name']);
-            $baseSlug = $slug;
-            $counter = 1;
+            // Only update slug if name has changed
+            if ($category->name !== $validated['name']) {
+                $slug = Str::slug($validated['name']);
+                $baseSlug = $slug;
+                $counter = 1;
 
-            // Ensure slug uniqueness
-            while (Category::where('slug', $slug)->where('id', '!=', $category->id)->exists()) {
-                $slug = $baseSlug . '-' . $counter;
-                $counter++;
+                // Ensure slug uniqueness
+                while (Category::where('slug', $slug)->where('id', '!=', $category->id)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+
+                $validated['slug'] = $slug;
             }
 
-            $validated['slug'] = $slug;
+            $category->update($validated);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Category updated successfully.'
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.campaigns-categories.index')
+                ->with('success', 'Category updated successfully.');
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update category: ' . $e->getMessage()
+                ], 422);
+            }
+
+            return back()->withErrors(['error' => 'Failed to update category: ' . $e->getMessage()]);
         }
-
-        $category->update($validated);
-
-        return redirect()
-            ->route('admin.campaigns-categories.index')
-            ->with('success', 'Category updated successfully.');
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(Request $request, Category $category)
     {
-        // Implement destroy logic here
-        $category->delete();
+        try {
+            $category->delete();
 
-        return redirect()
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Category deleted successfully.'
+                ]);
+            }
+
+            return redirect()
                 ->route('admin.campaigns-categories.index')
-            ->with('success', 'Category deleted successfully.');
+                ->with('success', 'Category deleted successfully.');
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete category: ' . $e->getMessage()
+                ], 422);
+            }
+
+            return back()->withErrors(['error' => 'Failed to delete category: ' . $e->getMessage()]);
+        }
     }
 } 

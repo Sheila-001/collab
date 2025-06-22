@@ -28,11 +28,14 @@ class Donor extends Model
     }
 
     /**
-     * Get the total amount donated by this donor.
+     * Get the total amount donated by this donor - use effective amount.
      */
     public function getTotalDonatedAttribute()
     {
-        return $this->donations()->where('type', 'monetary')->sum('amount');
+        return $this->donations()
+            ->where('type', 'monetary')
+            ->get()
+            ->sum('effective_amount');
     }
 
     /**

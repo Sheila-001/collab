@@ -12,7 +12,7 @@ class DonationController extends Controller
 {
     public function index()
     {
-        $campaigns = Campaign::where('status', 'active')
+        $campaigns = Campaign::acceptingDonations()
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -29,6 +29,13 @@ class DonationController extends Controller
         ]);
 
         $campaign = Campaign::findOrFail($request->campaign_id);
+
+        // Check if campaign is still accepting donations
+        if (!$campaign->isAcceptingDonations()) {
+            return redirect()->back()
+                ->withErrors(['campaign_id' => 'This campaign is no longer accepting donations.'])
+                ->withInput();
+        }
 
         // Handle file upload
         $path = $request->file('proof_of_payment')->store('donation_proofs', 'public');

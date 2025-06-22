@@ -17,8 +17,17 @@ class AdminController extends Controller
 {
     public function showLoginForm()
     {
-        if (Auth::check() && Auth::user()->is_admin) {
-            return redirect()->route('admin.dashboard');
+        if (Auth::check()) {
+            $user = Auth::user();
+            if ($user->isAdmin()) {
+                return redirect()->route('admin.donations.index');
+            } else {
+                // If user is logged in but not admin, logout them first
+                Auth::logout();
+                request()->session()->invalidate();
+                request()->session()->regenerateToken();
+                return view('admin.login')->with('info', 'Please login with admin credentials.');
+            }
         }
         return view('admin.login');
     }
@@ -32,8 +41,8 @@ class AdminController extends Controller
 
         if (Auth::attempt($credentials)) {
             $user = Auth::user();
-            
-            if (!$user->is_admin) {
+
+            if (!$user->isAdmin()) {
                 Auth::logout();
                 return back()->withErrors([
                     'email' => 'You do not have admin privileges.',
@@ -41,7 +50,7 @@ class AdminController extends Controller
             }
 
             $request->session()->regenerate();
-            return redirect()->intended(route('admin.dashboard'));
+            return redirect()->intended(route('admin.donations.index'));
         }
 
         return back()->withErrors([
@@ -55,106 +64,6 @@ class AdminController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
         return redirect('/');
-    }
-
-    public function index()
-    {
-        // Get current month's data
-        $currentMonth = Carbon::now();
-        $lastMonth = Carbon::now()->subMonth();
-
-        // Get total monetary donations
-        $monetaryTotal = Donation::where('type', 'monetary')
-            ->where('status', 'completed')
-            ->sum('amount');
-
-        // Calculate monetary change
-        $lastMonthMonetary = Donation::where('type', 'monetary')
-            ->where('status', 'completed')
-            ->whereMonth('created_at', $lastMonth->month)
-            ->whereYear('created_at', $lastMonth->year)
-            ->sum('amount');
-        
-        $monetaryChange = $lastMonthMonetary > 0 
-            ? (($monetaryTotal - $lastMonthMonetary) / $lastMonthMonetary) * 100 
-            : 0;
-
-        // Get count of non-monetary donations
-        $nonMonetaryCount = Donation::where('type', 'non-monetary')
-            ->where('status', 'completed')
-            ->count();
-
-        // Calculate non-monetary change
-        $lastMonthNonMonetary = Donation::where('type', 'non-monetary')
-            ->where('status', 'completed')
-            ->whereMonth('created_at', $lastMonth->month)
-            ->whereYear('created_at', $lastMonth->year)
-            ->count();
-        
-        $nonMonetaryChange = $lastMonthNonMonetary > 0 
-            ? (($nonMonetaryCount - $lastMonthNonMonetary) / $lastMonthNonMonetary) * 100 
-            : 0;
-
-        // Get campaign total and change
-        $campaignTotal = Donation::whereHas('campaign', function($query) {
-                $query->where('status', 'active');
-            })
-            ->where('status', 'completed')
-            ->sum('amount');
-        
-        $lastMonthCampaign = Donation::whereHas('campaign', function($query) use ($lastMonth) {
-                $query->where('status', 'active');
-            })
-            ->where('status', 'completed')
-            ->whereMonth('created_at', $lastMonth->month)
-            ->whereYear('created_at', $lastMonth->year)
-            ->sum('amount');
-        
-        $campaignChange = $lastMonthCampaign > 0 
-            ? (($campaignTotal - $lastMonthCampaign) / $lastMonthCampaign) * 100 
-            : 0;
-
-        // Get donor count and change
-        $donorCount = Donation::select('donor_email')
-            ->distinct()
-            ->count();
-        
-        $lastMonthDonors = Donation::select('donor_email')
-            ->distinct()
-            ->whereMonth('created_at', $lastMonth->month)
-            ->whereYear('created_at', $lastMonth->year)
-            ->count();
-        
-        $donorChange = $lastMonthDonors > 0 
-            ? (($donorCount - $lastMonthDonors) / $lastMonthDonors) * 100 
-            : 0;
-
-        // Get paginated donations
-        $donations = Donation::with(['campaign'])
-            ->latest()
-            ->paginate(10);
-
-        // Get pending drop-offs
-        $pendingDropoffs = Donation::where('type', 'non-monetary')
-            ->where('status', 'pending')
-            ->get();
-
-        // Get total pending donations (monetary + non-monetary)
-        $pendingDonations = Donation::where('status', 'pending')->count();
-
-        return view('admin.dashboard', compact(
-            'monetaryTotal',
-            'monetaryChange',
-            'nonMonetaryCount',
-            'nonMonetaryChange',
-            'campaignTotal',
-            'campaignChange',
-            'donorCount',
-            'donorChange',
-            'donations',
-            'pendingDropoffs',
-            'pendingDonations'
-        ));
     }
 
     public function volunteerIndex()
@@ -197,21 +106,23 @@ class AdminController extends Controller
         $lastMonth = Carbon::now()->subMonth();
 
         $monetaryTotal = Donation::where('type', 'monetary')
-            ->where('status', 'completed')
-            ->sum('amount');
+            ->where('status', 'approved')
+            ->get()
+            ->sum('effective_amount');
 
         $lastMonthMonetary = Donation::where('type', 'monetary')
-            ->where('status', 'completed')
+            ->where('status', 'approved')
             ->whereMonth('created_at', $lastMonth->month)
             ->whereYear('created_at', $lastMonth->year)
-            ->sum('amount');
+            ->get()
+            ->sum('effective_amount');
         
         $monetaryChange = $lastMonthMonetary > 0 
             ? (($monetaryTotal - $lastMonthMonetary) / $lastMonthMonetary) * 100 
             : 0;
 
         $nonMonetaryCount = Donation::where('type', 'non-monetary')
-            ->where('status', 'completed')
+            ->where('status', 'approved')
             ->count();
 
         $lastMonthNonMonetary = Donation::where('type', 'non-monetary')

@@ -40,7 +40,10 @@ class NonMonetarySubmissionThankYou extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.donations.non_monetary_submission_thank_you',
+            markdown: 'emails.donations.non_monetary_submission_thank_you',
+            with: [
+                'donation' => $this->donation
+            ]
         );
     }
 

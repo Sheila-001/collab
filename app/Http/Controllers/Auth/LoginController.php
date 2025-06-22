@@ -31,11 +31,9 @@ class LoginController extends Controller
             $request->session()->regenerate();
             $user = Auth::user();
             if ($user->role === 'admin') {
-                return redirect('/admin/dashboard');
-            } elseif ($user->role === 'student') {
-                return redirect('/student/dashboard');
+                return redirect()->route('admin.donations.index');
             } else {
-                return redirect('/home');
+                return redirect()->route('donation');
             }
         }
 

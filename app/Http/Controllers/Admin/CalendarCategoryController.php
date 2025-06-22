@@ -37,12 +37,12 @@ class CalendarCategoryController extends Controller
             ->with('success', 'Category has been created successfully.');
     }
 
-    public function edit(CalendarCategory $category)
+    public function edit(CalendarCategory $calendar_category)
     {
-        return view('admin.calendar.categories.edit', compact('category'));
+        return view('admin.calendar.categories.edit', compact('calendar_category'));
     }
 
-    public function update(Request $request, CalendarCategory $category)
+    public function update(Request $request, CalendarCategory $calendar_category)
     {
         try {
             $validated = $request->validate([
@@ -52,7 +52,7 @@ class CalendarCategoryController extends Controller
             ]);
 
             $validated['slug'] = Str::slug($validated['name']);
-            $category->update($validated);
+            $calendar_category->update($validated);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -76,10 +76,10 @@ class CalendarCategoryController extends Controller
         }
     }
 
-    public function destroy(Request $request, CalendarCategory $category)
+    public function destroy(Request $request, CalendarCategory $calendar_category)
     {
         try {
-            $category->delete();
+            $calendar_category->delete();
 
             if ($request->wantsJson()) {
                 return response()->json([

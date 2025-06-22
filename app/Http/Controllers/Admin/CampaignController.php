@@ -22,8 +22,16 @@ class CampaignController extends Controller
             ->latest()
             ->paginate(10)
             ->through(function ($campaign) {
-                $campaign->funds_raised = $campaign->donations->sum('amount');
+                // Only count approved donations
+                $campaign->funds_raised = $campaign->donations()
+                    ->where('type', 'monetary')
+                    ->where('status', 'approved')
+                    ->sum('amount');
                 $campaign->type = $campaign->type ?? 'Regular';
+
+                // Add computed status for display
+                $campaign->display_status = $campaign->computed_status;
+
                 return $campaign;
             });
 
@@ -46,37 +54,46 @@ class CampaignController extends Controller
             \Illuminate\Support\Facades\Log::info('Admin Dashboard Access Attempt - No User Authenticated');
         }
 
-        // Get active campaigns count
+        // Get active campaigns count (only currently running campaigns)
         $activeCampaigns = Campaign::where('status', 'active')
-            ->where('end_date', '>', Carbon::now())
+            ->where('start_date', '<=', Carbon::now())  // ✅ Must have started
+            ->where('end_date', '>', Carbon::now())     // ✅ Must not have ended
+            ->where('is_archived', false)
             ->count();
 
         // Get total donations amount
-        $totalDonations = Donation::where('status', 'completed')
+        $totalDonations = Donation::where('status', 'approved')
             ->sum('amount');
 
         // Get total unique donors count
-        $totalDonors = Donation::where('status', 'completed')
+        $totalDonors = Donation::where('status', 'approved')
             ->distinct('donor_email')
             ->count('donor_email');
 
-        // Get pending campaigns count
-        $pendingCampaigns = Campaign::where('status', 'paused')
-            ->orWhere(function($query) {
-                $query->where('status', 'active')
-                      ->where('start_date', '>', Carbon::now());
-            })
+        // Get scheduled campaigns count (campaigns that haven't started yet)
+        $scheduledCampaigns = Campaign::where('status', 'active')
+            ->where('start_date', '>', Carbon::now())
+            ->where('is_archived', false)
             ->count();
 
-        // Get active campaigns with their current amounts
+        // Get paused campaigns count
+        $pausedCampaigns = Campaign::where('status', 'paused')
+            ->where('is_archived', false)
+            ->count();
+
+        // Get total pending campaigns (scheduled + paused) for backward compatibility
+        $pendingCampaigns = $scheduledCampaigns + $pausedCampaigns;
+
+        // Get currently running campaigns with their current amounts (only completed donations)
         $campaigns = Campaign::where('status', 'active')
-            ->where('end_date', '>', Carbon::now())
-            ->withSum('donations as current_amount', 'amount')
+            ->where('start_date', '<=', Carbon::now())  // ✅ Must have started
+            ->where('end_date', '>', Carbon::now())     // ✅ Must not have ended
+            ->where('is_archived', false)
             ->latest()
             ->get()
             ->map(function ($campaign) {
-                // Ensure current_amount is not null
-                $campaign->current_amount = $campaign->current_amount ?? 0;
+                // Use total_donations which only counts approved donations
+                $campaign->current_amount = $campaign->total_donations ?? 0;
                 return $campaign;
             });
 
@@ -85,6 +102,8 @@ class CampaignController extends Controller
             'totalDonations',
             'totalDonors',
             'pendingCampaigns',
+            'scheduledCampaigns',
+            'pausedCampaigns',
             'campaigns'
         ));
     }
@@ -105,6 +124,9 @@ class CampaignController extends Controller
     {
         $validated = $request->validated();
 
+        // Set default status to 'active' since it's not in the form anymore
+        $validated['status'] = 'active';
+
         if ($request->hasFile('image')) {
             $validated['image'] = $request->file('image')->store('campaigns', 'public');
         }
@@ -121,7 +143,11 @@ class CampaignController extends Controller
     public function show(Campaign $campaign)
     {
         $campaign->load('donations');
-        $campaign->funds_raised = $campaign->donations->sum('amount');
+        // Only count completed donations
+        $campaign->funds_raised = $campaign->donations()
+            ->where('type', 'monetary')
+            ->where('status', 'completed')
+            ->sum('amount');
 
         return view('admin.campaigns.show', compact('campaign'));
     }
@@ -131,7 +157,8 @@ class CampaignController extends Controller
      */
     public function edit(Campaign $campaign)
     {
-        return view('admin.campaigns.edit', compact('campaign'));
+        $categories = \App\Models\Category::orderBy('name')->get();
+        return view('admin.campaigns.edit', compact('campaign', 'categories'));
     }
 
     /**
@@ -159,13 +186,34 @@ class CampaignController extends Controller
      */
     public function destroy(Campaign $campaign)
     {
-        if ($campaign->image) {
-            Storage::disk('public')->delete($campaign->image);
-        }
-        
-        $campaign->delete();
+        try {
+            if ($campaign->image) {
+                Storage::disk('public')->delete($campaign->image);
+            }
 
-        return redirect()->route('admin.campaigns.index')
-            ->with('success', 'Campaign deleted successfully.');
+            $campaign->delete();
+
+            // Handle AJAX requests
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Campaign deleted successfully.'
+                ]);
+            }
+
+            return redirect()->route('admin.campaigns.index')
+                ->with('success', 'Campaign deleted successfully.');
+        } catch (\Exception $e) {
+            // Handle AJAX requests
+            if (request()->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete campaign: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.campaigns.index')
+                ->with('error', 'Failed to delete campaign: ' . $e->getMessage());
+        }
     }
 } 
