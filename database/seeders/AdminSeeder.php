@@ -17,7 +17,6 @@ class AdminSeeder extends Seeder
             'role' => 'admin',
             'status' => 'active',
             'class_year' => '2025',
-            'is_admin' => 1,
         ]);
     }
 } 

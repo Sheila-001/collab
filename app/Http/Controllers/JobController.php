@@ -12,6 +12,11 @@ class JobController extends Controller
         return view('jobs.index', compact('jobs'));
     }
 
+    public function create()
+    {
+        return view('jobs.create');
+    }
+
     public function store(Request $request)
     {
         try {
@@ -32,19 +37,77 @@ class JobController extends Controller
                 'apply' => $validated['apply'],
                 'location' => $validated['location'],
                 'status' => 'pending', // Set initial status as pending for admin approval
-                'is_admin' => false
+                'is_admin' => auth()->user()->is_admin
             ]);
 
-            return response()->json([
-                'message' => 'Job submitted successfully! Waiting for admin approval.',
-                'job' => $job
-            ], 201);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'message' => 'Job submitted successfully! Waiting for admin approval.',
+                    'job' => $job
+                ], 201);
+            }
 
+            return redirect()->route('jobs.index')
+                ->with('success', 'Job listing created successfully.');
         } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Error submitting job.',
-                'error' => $e->getMessage()
-            ], 500);
+            if (request()->wantsJson()) {
+                return response()->json([
+                    'message' => 'Error submitting job.',
+                    'error' => $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Error creating job listing.');
         }
+    }
+
+    public function show(JobListing $job)
+    {
+        return view('jobs.show', compact('job'));
+    }
+
+    public function edit(JobListing $job)
+    {
+        return view('jobs.edit', compact('job'));
+    }
+
+    public function update(Request $request, JobListing $job)
+    {
+        $validated = $request->validate([
+            'role' => 'required|string|max:255',
+            'company' => 'required|string|max:255',
+            'contact' => 'required|string|max:255',
+            'apply' => 'required|string|max:255',
+            'location' => 'required|string|max:255',
+        ]);
+
+        $job->update($validated);
+
+        return redirect()->route('jobs.index')
+            ->with('success', 'Job listing updated successfully.');
+    }
+
+    public function destroy(JobListing $job)
+    {
+        $job->delete();
+
+        return redirect()->route('jobs.index')
+            ->with('success', 'Job listing deleted successfully.');
+    }
+
+    public function approve(JobListing $job)
+    {
+        $job->update(['status' => 'approved']);
+
+        return redirect()->route('jobs.index')
+            ->with('success', 'Job listing approved successfully.');
+    }
+
+    public function reject(JobListing $job)
+    {
+        $job->update(['status' => 'rejected']);
+
+        return redirect()->route('jobs.index')
+            ->with('success', 'Job listing rejected successfully.');
     }
 }

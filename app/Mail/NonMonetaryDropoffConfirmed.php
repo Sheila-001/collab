@@ -40,13 +40,9 @@ class NonMonetaryDropoffConfirmed extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.donation_received', // Use the common template
+            view: 'emails.donations.non_monetary_dropoff_confirmation',
             with: [
-                'donation' => $this->donation,
-                'donation_type' => 'non-monetary',
-                'donor_name' => $this->donation->donor_name,
-                'item_name' => $this->donation->item_name, // Assuming item_name is available
-                'expected_date' => $this->donation->expected_date?->format('M d, Y H:i'), // Assuming expected_date is available
+                'donation' => $this->donation
             ]
         );
     }

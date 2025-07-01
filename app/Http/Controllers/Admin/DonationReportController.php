@@ -14,12 +14,25 @@ class DonationReportController extends Controller
 {
     public function index(Request $request)
     {
-        // Calculate summary statistics
-        $monetaryDonationsTotal = Donation::where('type', 'monetary')->where('status', 'completed')->sum('amount');
-        $nonMonetaryDonationsCount = Donation::where('type', 'non-monetary')->count();
+        // Calculate summary statistics - use effective amount
+        $monetaryDonationsTotal = Donation::where('type', 'monetary')
+            ->where('status', 'approved')
+            ->get()
+            ->sum('effective_amount');
+        $nonMonetaryDonationsCount = Donation::where('type', 'non-monetary')
+            ->whereIn('status', ['approved', 'completed'])
+            ->count();
         $campaignsCount = Campaign::count();
-        // Count unique donors based on email
-        $donorsCount = Donation::whereNotNull('donor_email')->distinct('donor_email')->count('donor_email');
+        // Count unique donors based on email - only from approved/completed donations
+        $donorsCount = Donation::whereNotNull('donor_email')
+            ->where(function($query) {
+                $query->where('type', 'monetary')->whereIn('status', ['approved', 'completed']);
+            })
+            ->orWhere(function($query) {
+                $query->where('type', 'non-monetary')->where('status', 'completed');
+            })
+            ->distinct('donor_email')
+            ->count('donor_email');
 
         $query = Campaign::withCount('donations');
 
@@ -56,7 +69,8 @@ class DonationReportController extends Controller
         $recentDonations = $donations->take(10); // Get the 10 most recent donations
 
         // --- Start: Code to fetch and prepare monthly data for the chart ---
-        $startDate = Carbon::now()->subMonths(11)->startOfMonth(); // Start 12 months ago at the beginning of the month
+        $currentYear = Carbon::now()->year;
+        $startDate = Carbon::create($currentYear, 1, 1)->startOfMonth(); // Start from January of current year
 
         $monthlyDonations = Donation::select(
                 DB::raw('YEAR(created_at) as year'),
@@ -64,7 +78,7 @@ class DonationReportController extends Controller
                 DB::raw('SUM(amount) as total_amount')
             )
             ->where('type', 'monetary') // Assuming you only want monetary donations
-            ->where('created_at', '>=', $startDate) // Filter for the last 12 months
+            ->whereYear('created_at', $currentYear) // Filter for current year only
             ->groupBy('year', 'month')
             ->orderBy('year')
             ->orderBy('month')

@@ -19,9 +19,9 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Admin User',
                 'password' => Hash::make('password'),
-                'status' => 'active', // Assuming 'status' is a valid column and value
-                'class_year' => null, // Or a default value if applicable
-                'is_admin' => true,
+                'role' => 'admin',
+                'status' => 'active',
+                'class_year' => null,
                 'email_verified_at' => now(),
             ]
         );
@@ -32,9 +32,9 @@ class AdminUserSeeder extends Seeder
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('SuperAdmin@123'),
+                'role' => 'admin',
                 'status' => 'active',
                 'class_year' => '2024',
-                'is_admin' => true,
                 'email_verified_at' => now(),
             ]
         );
@@ -43,12 +43,11 @@ class AdminUserSeeder extends Seeder
             ['email' => 'admin@admin.com'],
             [
                 'name' => 'Admin User',
-                'password' => Hash::make('password'), // Change 'password' to your desired password
-                'is_admin' => true, // Assuming you have an is_admin field
+                'password' => Hash::make('admin123'),
+                'role' => 'admin',
                 'status' => 'active',
                 'class_year' => null,
                 'email_verified_at' => now(),
-                // Add any other required fields from your users table, e.g., 'class_year', 'phone_number', etc.
             ]
         );
     }

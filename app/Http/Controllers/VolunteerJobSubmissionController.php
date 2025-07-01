@@ -8,7 +8,7 @@ use App\Models\Event;
 use App\Models\JobListing;
 use Illuminate\Support\Facades\Validator;
 
-class VolunteerController extends Controller
+class VolunteerJobSubmissionController extends Controller
 {
     public function index()
     {
@@ -140,4 +140,4 @@ class VolunteerController extends Controller
             return redirect()->back()->with('error', 'An error occurred while loading the dashboard.');
         }
     }
-}
+} 

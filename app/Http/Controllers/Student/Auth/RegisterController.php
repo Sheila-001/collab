@@ -31,6 +31,6 @@ class RegisterController extends Controller
 
         Auth::guard('student')->login($student);
 
-        return redirect()->route('student.dashboard');
+        return redirect()->route('welcome');
     }
 } 

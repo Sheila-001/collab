@@ -46,7 +46,7 @@ class MonetaryDonationReceived extends Mailable
                 'donation_type' => 'monetary',
                 'donor_name' => $this->donation->donor_name,
                 'donation_amount' => $this->donation->amount,
-                'donation_date' => $this->donation->created_at?->format('M d, Y H:i'),
+                'donation_date' => $this->donation->created_at?->format('M d, Y h:i A'),
             ]
         );
     }

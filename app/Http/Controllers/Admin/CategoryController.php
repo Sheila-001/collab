@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category; // Assuming a Category model exists
 use Illuminate\Http\Request;
-use Illuminate\Support\Str; // Import the Str facade
+use Illuminate\Support\Str;
 
 class CategoryController extends Controller
 {
@@ -14,9 +14,8 @@ class CategoryController extends Controller
      */
     public function index()
     {
-        // Implement index logic here, e.g., fetching all categories
-        $categories = Category::all();
-        return view('admin.categories.index', compact('categories'));
+        $categories = Category::orderBy('name')->get();
+        return view('admin.campaigns.categories.index', compact('categories'));
     }
 
     /**
@@ -24,8 +23,7 @@ class CategoryController extends Controller
      */
     public function create()
     {
-        // Implement create form logic here
-        return view('admin.categories.create');
+        return view('admin.campaigns.categories.create');
     }
 
     /**
@@ -34,17 +32,33 @@ class CategoryController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:255|unique:categories,name',
-            'color' => 'nullable|string|max:7',
-            'description' => 'nullable|string',
+            'name' => 'required|string|max:255',
+            'color' => 'required|string|size:7|regex:/^#[A-Fa-f0-9]{6}$/',
+            'description' => 'nullable|string'
         ]);
 
-        // Generate slug from the name
-        $validated['slug'] = Str::slug($validated['name']);
+        // Generate a unique slug from the name
+        $slug = Str::slug($validated['name']);
+        $baseSlug = $slug;
+        $counter = 1;
 
-        Category::create($validated);
+        // Ensure slug uniqueness
+        while (Category::where('slug', $slug)->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category created successfully.');
+        // Create the category with the generated slug
+        Category::create([
+            'name' => $validated['name'],
+            'slug' => $slug,
+            'color' => $validated['color'],
+            'description' => $validated['description']
+        ]);
+
+        return redirect()
+            ->route('admin.campaigns-categories.index')
+            ->with('success', 'Category created successfully.');
     }
 
     /**
@@ -53,7 +67,7 @@ class CategoryController extends Controller
     public function show(Category $category)
     {
         // Implement show logic here
-        return view('admin.categories.show', compact('category'));
+        return view('admin.campaigns.categories.show', compact('category'));
     }
 
     /**
@@ -62,7 +76,7 @@ class CategoryController extends Controller
     public function edit(Category $category)
     {
         // Implement edit form logic here
-        return view('admin.categories.edit', compact('category'));
+        return view('admin.campaigns.categories.edit', compact('category'));
     }
 
     /**
@@ -70,25 +84,79 @@ class CategoryController extends Controller
      */
     public function update(Request $request, Category $category)
     {
-        // Implement update logic here, e.g., validating and updating the category
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            // Add other validation rules as needed
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'color' => 'required|string|size:7|regex:/^#[A-Fa-f0-9]{6}$/',
+                'description' => 'nullable|string'
+            ]);
 
-        $category->update($validated);
+            // Only update slug if name has changed
+            if ($category->name !== $validated['name']) {
+                $slug = Str::slug($validated['name']);
+                $baseSlug = $slug;
+                $counter = 1;
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category updated successfully.');
+                // Ensure slug uniqueness
+                while (Category::where('slug', $slug)->where('id', '!=', $category->id)->exists()) {
+                    $slug = $baseSlug . '-' . $counter;
+                    $counter++;
+                }
+
+                $validated['slug'] = $slug;
+            }
+
+            $category->update($validated);
+
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Category updated successfully.'
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.campaigns-categories.index')
+                ->with('success', 'Category updated successfully.');
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to update category: ' . $e->getMessage()
+                ], 422);
+            }
+
+            return back()->withErrors(['error' => 'Failed to update category: ' . $e->getMessage()]);
+        }
     }
 
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Category $category)
+    public function destroy(Request $request, Category $category)
     {
-        // Implement destroy logic here
-        $category->delete();
+        try {
+            $category->delete();
 
-        return redirect()->route('admin.categories.index')->with('success', 'Category deleted successfully.');
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Category deleted successfully.'
+                ]);
+            }
+
+            return redirect()
+                ->route('admin.campaigns-categories.index')
+                ->with('success', 'Category deleted successfully.');
+        } catch (\Exception $e) {
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete category: ' . $e->getMessage()
+                ], 422);
+            }
+
+            return back()->withErrors(['error' => 'Failed to delete category: ' . $e->getMessage()]);
+        }
     }
 } 

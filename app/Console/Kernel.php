@@ -26,7 +26,14 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire:daily')->hourly();
+        // Update campaign statuses daily at midnight
+        $schedule->command('campaigns:update-status')->daily();
+
+        // Update urgent campaign statuses daily at midnight
+        $schedule->command('urgent-campaigns:update-status')->daily();
+
+        // Update urgent campaign totals daily at 1 AM
+        $schedule->command('urgent-campaigns:update-totals')->dailyAt('01:00');
     }
 
     /**
